@@ -49,14 +49,21 @@ collectButton.addEventListener("click", async () => {
     setStatus("Download iniciado! Registrando no Supabase...");
 
     try {
-      await logDownload({
+      const result = await logDownload({
         pageUrl: tab.url,
         fileName: OUTPUT_FILENAME,
         audioCount: urls.length,
         durationSeconds: duration,
         sourceUrls: urls,
       });
-      setStatus("Download iniciado e registrado com sucesso!");
+
+      if (result?.skipped) {
+        setStatus(
+          "Download iniciado. Configure o Supabase nas opções da extensão para registrar os eventos."
+        );
+      } else {
+        setStatus("Download iniciado e registrado com sucesso!");
+      }
     } catch (error) {
       console.warn("Não foi possível registrar o download no Supabase", error);
       setStatus(
