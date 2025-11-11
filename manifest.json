@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Audio Collector",
+  "version": "1.1.0",
+  "description": "Coleta áudios de páginas, une em um único arquivo e registra downloads no Supabase.",
+  "permissions": ["activeTab", "scripting", "downloads", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Audio Collector",
+    "default_popup": "popup/popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  }
+}

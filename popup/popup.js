@@ -1,0 +1,121 @@
+import { mergeArrayBuffersToWav } from "../lib/audio.js";
+import { logDownload } from "../lib/supabaseClient.js";
+import { getSupabaseConfig } from "../lib/settings.js";
+
+const collectButton = document.getElementById("collect");
+const statusEl = document.getElementById("status");
+const configNoteEl = document.getElementById("config-note");
+const OUTPUT_FILENAME = "audios_unidos.wav";
+
+collectButton.addEventListener("click", async () => {
+  collectButton.disabled = true;
+  setStatus("Coletando áudios da página...");
+  let downloadUrl;
+
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) {
+      throw new Error("Não foi possível identificar a aba ativa.");
+    }
+
+    const response = await chrome.tabs.sendMessage(tab.id, { type: "COLLECT_AUDIO_URLS" });
+    const urls = response?.urls ?? [];
+
+    if (!urls.length) {
+      setStatus("Nenhum áudio encontrado nesta página.");
+      return;
+    }
+
+    setStatus(`Encontrados ${urls.length} áudios. Baixando conteúdos...`);
+    const downloadResponse = await chrome.runtime.sendMessage({
+      type: "FETCH_AUDIO_ARRAY_BUFFERS",
+      urls,
+    });
+
+    if (!downloadResponse?.success) {
+      throw new Error(downloadResponse?.error || "Falha ao baixar os áudios.");
+    }
+
+    const arrayBuffers = downloadResponse.buffers.map((item) => item.data);
+    setStatus("Convertendo e unindo os áudios...");
+
+    const { blob, duration } = await mergeArrayBuffersToWav(arrayBuffers);
+    downloadUrl = URL.createObjectURL(blob);
+
+    await chrome.downloads.download({
+      url: downloadUrl,
+      filename: OUTPUT_FILENAME,
+      saveAs: true,
+    });
+
+    setStatus("Download iniciado! Registrando no Supabase...");
+
+    try {
+      const result = await logDownload({
+        pageUrl: tab.url,
+        fileName: OUTPUT_FILENAME,
+        audioCount: urls.length,
+        durationSeconds: duration,
+        sourceUrls: urls,
+      });
+
+      if (result?.skipped) {
+        setStatus(
+          "Download iniciado. Configure o Supabase nas opções da extensão para registrar os eventos."
+        );
+      } else {
+        setStatus("Download iniciado e registrado com sucesso!");
+      }
+    } catch (error) {
+      console.warn("Não foi possível registrar o download no Supabase", error);
+      setStatus(
+        "Download iniciado, mas houve um problema ao registrar no Supabase. Veja o console para detalhes."
+      );
+    }
+  } catch (error) {
+    console.error(error);
+    setStatus(`Erro: ${error.message}`);
+  } finally {
+    if (downloadUrl) {
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000);
+    }
+    collectButton.disabled = false;
+  }
+});
+
+function setStatus(message) {
+  statusEl.textContent = message;
+}
+
+async function initializeConfigNote() {
+  if (!configNoteEl) {
+    return;
+  }
+
+  try {
+    const { url, anonKey } = await getSupabaseConfig();
+
+    if (url && anonKey) {
+      const maskedKey = maskAnonKey(anonKey);
+      configNoteEl.textContent = `Supabase configurado: ${url} (anon key ${maskedKey}).`;
+    } else {
+      configNoteEl.textContent =
+        "Registros no Supabase desativados. Configure as credenciais nas opções da extensão.";
+    }
+  } catch (error) {
+    console.error("Não foi possível verificar o Supabase configurado", error);
+    configNoteEl.textContent =
+      "Não foi possível verificar a configuração do Supabase. Veja o console para detalhes.";
+  }
+}
+
+function maskAnonKey(key) {
+  if (!key || key.length <= 12) {
+    return key || "";
+  }
+  const start = key.slice(0, 6);
+  const end = key.slice(-6);
+  return `${start}…${end}`;
+}
+
+initializeConfigNote();

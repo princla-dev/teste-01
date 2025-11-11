@@ -1,0 +1,39 @@
+import { ensureDefaultSupabaseConfig } from "./lib/settings.js";
+
+chrome.runtime.onInstalled.addListener(() => {
+  ensureDefaultSupabaseConfig().catch((error) => {
+    console.error("Não foi possível inicializar a configuração padrão do Supabase", error);
+  });
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === "FETCH_AUDIO_ARRAY_BUFFERS") {
+    handleFetchAudioBuffers(message.urls)
+      .then((buffers) => sendResponse({ success: true, buffers }))
+      .catch((error) => {
+        console.error("Erro ao baixar áudios", error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  }
+
+  return false;
+});
+
+async function handleFetchAudioBuffers(urls = []) {
+  if (!Array.isArray(urls) || urls.length === 0) {
+    throw new Error("Nenhum URL recebido para download.");
+  }
+
+  const buffers = [];
+  for (const url of urls) {
+    const response = await fetch(url, { credentials: "include" });
+    if (!response.ok) {
+      throw new Error(`Falha ao baixar ${url} (${response.status})`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const contentType = response.headers.get("content-type") || "audio/mpeg";
+    buffers.push({ data: arrayBuffer, mimeType: contentType, url });
+  }
+  return buffers;
+}
