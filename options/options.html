@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Configurações do Audio Collector</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Configurações do Audio Collector</h1>
+      <p class="description">
+        Defina abaixo o projeto Supabase que receberá os registros de download. Os campos já vêm
+        preenchidos com o projeto fornecido, mas você pode substituí-los a qualquer momento.
+      </p>
+      <form id="config-form">
+        <label>
+          URL do Supabase
+          <input id="supabase-url" name="supabase-url" type="url" required placeholder="https://<project>.supabase.co" />
+        </label>
+        <label>
+          Chave anônima (anon key)
+          <textarea id="supabase-anon-key" name="supabase-anon-key" rows="5" required></textarea>
+        </label>
+        <button type="submit">Salvar configurações</button>
+        <p id="feedback" role="status" aria-live="polite"></p>
+      </form>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

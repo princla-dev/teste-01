@@ -1,3 +1,11 @@
+import { ensureDefaultSupabaseConfig } from "./lib/settings.js";
+
+chrome.runtime.onInstalled.addListener(() => {
+  ensureDefaultSupabaseConfig().catch((error) => {
+    console.error("Não foi possível inicializar a configuração padrão do Supabase", error);
+  });
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "FETCH_AUDIO_ARRAY_BUFFERS") {
     handleFetchAudioBuffers(message.urls)
@@ -25,6 +33,10 @@ async function handleFetchAudioBuffers(urls = []) {
     }
     const arrayBuffer = await response.arrayBuffer();
     const contentType = response.headers.get("content-type") || "audio/mpeg";
+    buffers.push({ data: arrayBuffer, mimeType: contentType, url });
+  }
+  return buffers;
+}
     buffers.push({ data: arrayBufferToBase64(arrayBuffer), mimeType: contentType, url });
   }
   return buffers;
