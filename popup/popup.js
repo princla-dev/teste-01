@@ -1,4 +1,4 @@
-import { base64ToArrayBuffer, mergeArrayBuffersToWav } from "../lib/audio.js";
+import { mergeArrayBuffersToWav } from "../lib/audio.js";
 import { logDownload } from "../lib/supabaseClient.js";
 
 const collectButton = document.getElementById("collect");
@@ -34,7 +34,7 @@ collectButton.addEventListener("click", async () => {
       throw new Error(downloadResponse?.error || "Falha ao baixar os áudios.");
     }
 
-    const arrayBuffers = downloadResponse.buffers.map((item) => base64ToArrayBuffer(item.data));
+    const arrayBuffers = downloadResponse.buffers.map((item) => item.data);
     setStatus("Convertendo e unindo os áudios...");
 
     const { blob, duration } = await mergeArrayBuffersToWav(arrayBuffers);
@@ -59,7 +59,9 @@ collectButton.addEventListener("click", async () => {
       setStatus("Download iniciado e registrado com sucesso!");
     } catch (error) {
       console.warn("Não foi possível registrar o download no Supabase", error);
-      setStatus("Download iniciado, mas houve um problema ao registrar no Supabase. Veja o console para detalhes.");
+      setStatus(
+        "Download iniciado, mas houve um problema ao registrar no Supabase. Veja o console para detalhes."
+      );
     }
   } catch (error) {
     console.error(error);

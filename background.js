@@ -25,16 +25,7 @@ async function handleFetchAudioBuffers(urls = []) {
     }
     const arrayBuffer = await response.arrayBuffer();
     const contentType = response.headers.get("content-type") || "audio/mpeg";
-    buffers.push({ data: arrayBufferToBase64(arrayBuffer), mimeType: contentType, url });
+    buffers.push({ data: arrayBuffer, mimeType: contentType, url });
   }
   return buffers;
-}
-
-function arrayBufferToBase64(buffer) {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i += 1) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
 }
